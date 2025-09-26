@@ -1,0 +1,62 @@
+#!/bin/bash
+set -euo pipefail
+
+# P1 Dev Guard Pre-push Hook
+# Comprehensive Big Bang compliance verification before push
+
+echo "🚀 P1 Dev Guard: Running pre-push verification..."
+
+# Load configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -f "${SCRIPT_DIR}/make/.env" ]]; then
+    source "${SCRIPT_DIR}/make/.env"
+fi
+
+# Get commits being pushed
+while read local_ref local_sha remote_ref remote_sha; do
+    if [[ "${local_sha}" == "0000000000000000000000000000000000000000" ]]; then
+        # Branch is being deleted
+        continue
+    fi
+
+    if [[ "${remote_sha}" == "0000000000000000000000000000000000000000" ]]; then
+        # New branch - check all commits
+        COMMITS=$(git rev-list --reverse "${local_sha}")
+    else
+        # Existing branch - check new commits only
+        COMMITS=$(git rev-list --reverse "${remote_sha}..${local_sha}")
+    fi
+
+    echo "📊 Verifying commits for ${local_ref}:"
+
+    for commit in ${COMMITS}; do
+        echo "  🔍 Checking commit: $(git show --format="%h %s" --no-patch "${commit}")"
+
+        # Switch to commit for verification
+        CURRENT_BRANCH=$(git branch --show-current)
+        git checkout --quiet "${commit}" || {
+            echo "❌ Failed to checkout commit ${commit}"
+            git checkout --quiet "${CURRENT_BRANCH}"
+            exit 1
+        }
+
+        # Run comprehensive verification
+        echo "    Running Big Bang compliance verification..."
+        if ! make verify; then
+            echo "❌ Big Bang compliance verification failed for commit ${commit}"
+            echo "🔧 Fix the issues and amend the commit, or add new commits to fix"
+            echo "💡 Run 'make verify' locally to see detailed failure information"
+            git checkout --quiet "${CURRENT_BRANCH}"
+            exit 1
+        fi
+
+        echo "    ✅ Commit ${commit} passed verification"
+    done
+
+    # Return to original branch
+    git checkout --quiet "${CURRENT_BRANCH}"
+done
+
+echo "🎉 All commits passed Big Bang compliance verification!"
+echo "🚀 Push will proceed..."
+exit 0

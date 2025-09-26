@@ -1,0 +1,344 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "P1: Verify",
+      "type": "shell",
+      "command": "make",
+      "args": ["verify"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [
+        {
+          "owner": "conftest",
+          "fileLocation": ["relative", "${workspaceFolder}"],
+          "pattern": [
+            {
+              "regexp": "^FAIL - (.*):(\\d+) - (.*)$",
+              "file": 1,
+              "line": 2,
+              "message": 3,
+              "severity": "error"
+            }
+          ]
+        },
+        {
+          "owner": "hadolint",
+          "fileLocation": ["relative", "${workspaceFolder}"],
+          "pattern": [
+            {
+              "regexp": "^(.*):LINT:(\\d+) (DL\\d+) (.*)$",
+              "file": 1,
+              "line": 2,
+              "code": 3,
+              "message": 4,
+              "severity": "warning"
+            }
+          ]
+        },
+        {
+          "owner": "trivy",
+          "fileLocation": ["relative", "${workspaceFolder}"],
+          "pattern": [
+            {
+              "regexp": "^(.*) \\((.*):(.*)\\) (.*)$",
+              "file": 2,
+              "line": 3,
+              "message": 4,
+              "severity": "error"
+            }
+          ]
+        },
+        {
+          "owner": "yaml",
+          "fileLocation": ["relative", "${workspaceFolder}"],
+          "pattern": [
+            {
+              "regexp": "^(.*):(\\d+):(\\d+): \\[error\\] (.*)$",
+              "file": 1,
+              "line": 2,
+              "column": 3,
+              "message": 4,
+              "severity": "error"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "P1: Lint",
+      "type": "shell",
+      "command": "make",
+      "args": ["lint"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": "$eslint-stylish"
+    },
+    {
+      "label": "P1: Chart Template",
+      "type": "shell",
+      "command": "helm",
+      "args": [
+        "template",
+        "sample-app",
+        "helm/sample-app",
+        "--values",
+        "helm/sample-app/values.yaml"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "P1: SBOM Generate",
+      "type": "shell",
+      "command": "make",
+      "args": ["sbom"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "P1: Security Scan",
+      "type": "shell",
+      "command": "make",
+      "args": ["scan"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "P1: Dev Environment Up",
+      "type": "shell",
+      "command": "make",
+      "args": ["dev-up"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "P1: Dev Environment Down",
+      "type": "shell",
+      "command": "make",
+      "args": ["dev-down"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "P1: Bootstrap",
+      "type": "shell",
+      "command": "make",
+      "args": ["bootstrap"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Kubernetes: Apply Manifests",
+      "type": "shell",
+      "command": "kubectl",
+      "args": [
+        "apply",
+        "-f",
+        "${workspaceFolder}/deploy/",
+        "--recursive"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Helm: Install Chart",
+      "type": "shell",
+      "command": "helm",
+      "args": [
+        "install",
+        "sample-app",
+        "./helm/sample-app",
+        "--namespace",
+        "sample-app",
+        "--create-namespace"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Flux: Reconcile",
+      "type": "shell",
+      "command": "flux",
+      "args": [
+        "reconcile",
+        "helmrelease",
+        "sample-app",
+        "--namespace",
+        "sample-app"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "P1: AI Analysis (Container)",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-v",
+        "${workspaceFolder}:/workspace",
+        "-e",
+        "AWS_PROFILE=${env:AWS_PROFILE}",
+        "-v",
+        "${env:HOME}/.aws:/root/.aws:ro",
+        "${config:p1devguard.containerImage}",
+        "--ai-model",
+        "${config:p1devguard.aiModel}",
+        "--ai-region",
+        "${config:p1devguard.awsRegion}",
+        "--format",
+        "json"
+      ],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      },
+      "problemMatcher": [
+        {
+          "owner": "p1-ai",
+          "fileLocation": ["relative", "${workspaceFolder}"],
+          "pattern": [
+            {
+              "regexp": "^\\s*\"file\":\\s*\"(.*)\".*\"line\":\\s*(\\d+).*\"message\":\\s*\"(.*)\".*\"severity\":\\s*\"(.*)\"",
+              "file": 1,
+              "line": 2,
+              "message": 3,
+              "severity": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "P1: Quick AI Scan",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-v",
+        "${workspaceFolder}:/workspace",
+        "-e",
+        "AWS_PROFILE=${env:AWS_PROFILE}",
+        "-v",
+        "${env:HOME}/.aws:/root/.aws:ro",
+        "${config:p1devguard.containerImage}",
+        "--ai-model",
+        "claude-3-haiku",
+        "--skip-scan",
+        "--skip-sbom"
+      ],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "P1: Cost Estimate",
+      "type": "shell",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/build/toolchain/ai_config.py",
+        "cost",
+        "--model",
+        "${config:p1devguard.aiModel}",
+        "--input-tokens",
+        "2000",
+        "--output-tokens",
+        "1000"
+      ],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "P1: Test AWS/Bedrock Connection",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "${workspaceFolder}/build/toolchain/test-iam-roles.sh"
+      ],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    }
+  ]
+}

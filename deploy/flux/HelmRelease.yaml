@@ -1,0 +1,167 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: sample-app
+  namespace: sample-app
+  labels:
+    app.kubernetes.io/name: sample-app
+    app.kubernetes.io/part-of: bigbang
+  annotations:
+    bigbang.dev/component: "sample-app"
+    meta.helm.sh/release-name: sample-app
+    meta.helm.sh/release-namespace: sample-app
+spec:
+  interval: 5m
+  timeout: 10m
+  chart:
+    spec:
+      chart: sample-app
+      version: "1.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: sample-app-charts
+        namespace: sample-app
+      interval: 5m
+      # Verify chart signatures
+      verify:
+        provider: cosign
+        secretRef:
+          name: cosign-public-keys
+
+  # Installation and upgrade configuration
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+    cleanupOnFail: true
+  rollback:
+    recreate: true
+    cleanupOnFail: true
+
+  # Values override for Big Bang compliance
+  values:
+    image:
+      repository: registry.internal/ironbank/opensource/nginx/nginx
+      digest: sha256:4c0fdaa8b6341bfdeca5f18f7837462c80cff90527ee35ef185571e1c327beac
+      pullPolicy: IfNotPresent
+
+    replicaCount: 2
+
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+
+    securityContext:
+      pod:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      container:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        capabilities:
+          drop:
+            - ALL
+
+    probes:
+      liveness:
+        httpGet:
+          path: /health
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      readiness:
+        httpGet:
+          path: /ready
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 10
+        periodSeconds: 5
+
+    service:
+      type: ClusterIP
+      port: 8080
+      targetPort: 8080
+
+    ingress:
+      enabled: true
+      className: istio
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+        - host: sample-app.bigbang.dev
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: sample-app-tls
+          hosts:
+            - sample-app.bigbang.dev
+
+    serviceAccount:
+      create: true
+      name: sample-app
+      annotations:
+        sidecar.istio.io/inject: "true"
+
+    networkPolicy:
+      enabled: true
+
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+
+    # Volume mounts for read-only root filesystem
+    volumeMounts:
+      - name: tmp
+        mountPath: /tmp
+      - name: var-run
+        mountPath: /var/run
+      - name: var-cache
+        mountPath: /var/cache/nginx
+
+    volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: var-run
+        emptyDir: {}
+      - name: var-cache
+        emptyDir: {}
+
+  # Health checks and monitoring
+  test:
+    enable: true
+    timeout: 5m
+
+  # Dependency management
+  dependsOn:
+    - name: istio-system
+      namespace: istio-system
+    - name: monitoring
+      namespace: monitoring
+
+  # Post-deployment verification
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: sample-app
+            patch: |
+              - op: add
+                path: /metadata/annotations/flux.weave.works~1automated
+                value: "true"

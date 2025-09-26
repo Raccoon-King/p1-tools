@@ -1,0 +1,21 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-azuretools.vscode-docker",
+    "ms-kubernetes-tools.vscode-kubernetes-tools",
+    "redhat.vscode-yaml",
+    "redhat.vscode-xml",
+    "tim-koike.helm-intellisense",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-json",
+    "tsandall.opa",
+    "amazonwebservices.aws-toolkit-vscode",
+    "ms-vscode-remote.remote-containers",
+    "gitlab.gitlab-workflow",
+    "github.vscode-pull-request-github",
+    "ms-vscode.makefile-tools"
+  ],
+  "unwantedRecommendations": [
+    "ms-vscode.vscode-typescript-next"
+  ]
+}

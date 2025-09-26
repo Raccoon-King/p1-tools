@@ -1,0 +1,73 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug: P1 AI Analyzer",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/toolchain/bedrock_analyzer.py",
+      "args": [
+        "--test-analysis"
+      ],
+      "env": {
+        "AWS_PROFILE": "${env:AWS_PROFILE}",
+        "AWS_REGION": "us-east-1",
+        "PYTHONPATH": "${workspaceFolder}/build/toolchain"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Debug: AI Configuration",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/toolchain/ai_config.py",
+      "args": [
+        "show"
+      ],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/build/toolchain"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Debug: Verify Script",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "bash",
+      "args": [
+        "${workspaceFolder}/build/toolchain/verify.sh",
+        "--debug",
+        "/workspace"
+      ],
+      "env": {
+        "DEBUG": "1",
+        "AI_ENABLED": "true",
+        "AWS_PROFILE": "${env:AWS_PROFILE}"
+      }
+    },
+    {
+      "name": "Container: Interactive Debug",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "docker",
+      "args": [
+        "run",
+        "-it",
+        "--rm",
+        "-v",
+        "${workspaceFolder}:/workspace",
+        "-e",
+        "DEBUG=1",
+        "-e",
+        "AWS_PROFILE=${env:AWS_PROFILE}",
+        "-v",
+        "${env:HOME}/.aws:/root/.aws:ro",
+        "--entrypoint",
+        "/bin/bash",
+        "${config:p1devguard.containerImage}"
+      ]
+    }
+  ]
+}

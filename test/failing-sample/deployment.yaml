@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: non-compliant-app
+  labels:
+    app: non-compliant-app  # Missing proper Big Bang labels
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: non-compliant-app
+  template:
+    metadata:
+      labels:
+        app: non-compliant-app
+    spec:
+      # Missing serviceAccountName - will use default
+      # Missing securityContext
+      containers:
+        - name: app
+          # VIOLATION: Using latest tag and non-Iron Bank image
+          image: nginx:latest
+          imagePullPolicy: Always  # Inefficient for digest-based images
+          ports:
+            - containerPort: 80  # Missing name for port
+          # VIOLATION: Missing securityContext
+          # VIOLATION: Missing resource requests and limits
+          # VIOLATION: Missing health probes
+          # VIOLATION: Writable root filesystem (readOnlyRootFilesystem not set)
+          env:
+            - name: DEBUG
+              value: "true"
+      # VIOLATION: Missing volumes for read-only root filesystem
+      # VIOLATION: No anti-affinity rules

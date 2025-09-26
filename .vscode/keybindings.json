@@ -1,0 +1,50 @@
+[
+  {
+    "key": "ctrl+alt+p v",
+    "command": "workbench.action.tasks.runTask",
+    "args": "P1: Verify",
+    "when": "!inDebugMode"
+  },
+  {
+    "key": "ctrl+alt+p a",
+    "command": "workbench.action.tasks.runTask",
+    "args": "P1: AI Analysis (Container)",
+    "when": "!inDebugMode"
+  },
+  {
+    "key": "ctrl+alt+p q",
+    "command": "workbench.action.tasks.runTask",
+    "args": "P1: Quick AI Scan",
+    "when": "!inDebugMode"
+  },
+  {
+    "key": "ctrl+alt+p s",
+    "command": "workbench.action.tasks.runTask",
+    "args": "P1: Security Scan",
+    "when": "!inDebugMode"
+  },
+  {
+    "key": "ctrl+alt+p c",
+    "command": "workbench.action.tasks.runTask",
+    "args": "P1: Cost Estimate",
+    "when": "!inDebugMode"
+  },
+  {
+    "key": "ctrl+alt+p t",
+    "command": "workbench.action.tasks.runTask",
+    "args": "P1: Test AWS/Bedrock Connection",
+    "when": "!inDebugMode"
+  },
+  {
+    "key": "ctrl+alt+p h",
+    "command": "workbench.action.tasks.runTask",
+    "args": "P1: Chart Template",
+    "when": "!inDebugMode"
+  },
+  {
+    "key": "ctrl+alt+p l",
+    "command": "workbench.action.tasks.runTask",
+    "args": "P1: Lint",
+    "when": "!inDebugMode"
+  }
+]

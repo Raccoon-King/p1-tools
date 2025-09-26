@@ -1,0 +1,153 @@
+{
+  // Workspace settings for P1 Dev Guard development
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": true,
+  "editor.rulers": [120],
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": true,
+    "source.organizeImports": true
+  },
+
+  // File associations for Big Bang and Kubernetes
+  "files.associations": {
+    "*.yaml": "yaml",
+    "*.yml": "yaml",
+    "*.rego": "plaintext",
+    "Chart.yaml": "yaml",
+    "values*.yaml": "yaml",
+    "requirements*.yaml": "yaml",
+    ".helmignore": "ignore",
+    "Dockerfile*": "dockerfile",
+    "*.tpl": "helm"
+  },
+
+  // YAML configuration
+  "yaml.validate": true,
+  "yaml.format.enable": true,
+  "yaml.format.singleQuote": false,
+  "yaml.format.bracketSpacing": true,
+  "yaml.completion": true,
+  "yaml.hover": true,
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/instrumenta/kubernetes-json-schema/master/v1.18.0-standalone-strict/all.json": [
+      "*.yaml",
+      "*.yml"
+    ],
+    "https://raw.githubusercontent.com/helm/helm/main/pkg/chart/chart.go": "Chart.yaml",
+    "https://json.schemastore.org/helmfile.json": "helmfile.yaml"
+  },
+
+  // Kubernetes extension settings
+  "vs-kubernetes": {
+    "vs-kubernetes.namespace": "sample-app",
+    "vs-kubernetes.kubectl-path": "/usr/local/bin/kubectl",
+    "vs-kubernetes.helm-path": "/usr/local/bin/helm",
+    "vs-kubernetes.draft-path": "",
+    "vs-kubernetes.minikube-path": "/usr/local/bin/minikube",
+    "vs-kubernetes.kubectlVersioning": "user-provided",
+    "vs-kubernetes.outputFormat": "yaml",
+    "vs-kubernetes.autoCleanupOnDebugTerminate": true,
+    "vs-kubernetes.logsDisplayMode": "container"
+  },
+
+  // Docker settings
+  "docker.defaultRegistryPath": "registry.internal",
+  "docker.images.label": "CreatedTime",
+  "docker.images.sortBy": "CreatedTime",
+  "docker.images.groupBy": "Repository",
+
+  // Git settings
+  "git.enableSmartCommit": true,
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.branchProtection": ["main", "master", "production"],
+
+  // Terminal settings
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.shell.linux": "/bin/bash",
+
+  // Search and file exclusions
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/vendor": true,
+    "**/target": true,
+    "**/build": true,
+    "**/dist": true,
+    "**/.git": true,
+    "**/artifacts": true
+  },
+
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/artifacts": true
+  },
+
+  // Language-specific settings
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+    "editor.autoIndent": "advanced"
+  },
+
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "[dockerfile]": {
+    "editor.defaultFormatter": "ms-azuretools.vscode-docker"
+  },
+
+  "[go]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
+
+  // Prettier configuration
+  "prettier.configPath": ".prettierrc",
+  "prettier.tabWidth": 2,
+  "prettier.useTabs": false,
+
+  // Problems panel configuration
+  "problems.decorations.enabled": true,
+  "problems.showCurrentInStatus": true,
+
+  // IntelliSense and validation
+  "typescript.suggest.autoImports": true,
+  "json.validate.enable": true,
+  "yaml.customTags": [
+    "!Ref",
+    "!GetAtt",
+    "!Join sequence",
+    "!FindInMap sequence",
+    "!Select sequence",
+    "!Split sequence",
+    "!Sub sequence"
+  ],
+
+  // Extension settings
+  "helm-intellisense.customValueFileNames": [
+    "values.yaml",
+    "values.yml",
+    "values-*.yaml",
+    "values-*.yml"
+  ],
+
+  // Continue/AI assistant settings
+  "continue.enableTabAutocomplete": true,
+  "continue.telemetryEnabled": false,
+
+  // P1 Dev Guard AI Settings
+  "p1devguard.enabled": true,
+  "p1devguard.autoAnalysis": true,
+  "p1devguard.aiModel": "claude-3-haiku",
+  "p1devguard.awsRegion": "us-east-1",
+  "p1devguard.analysisDepth": "standard",
+  "p1devguard.showCostEstimates": true,
+  "p1devguard.containerImage": "registry.internal/p1/p1-dev-guard:2025.09.01",
+  "p1devguard.ironbankMirror": "${IRONBANK_MIRROR}",
+  "p1devguard.trivySeverity": "HIGH,CRITICAL"
+}

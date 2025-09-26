@@ -1,0 +1,105 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "sample-app.fullname" . }}
+  labels:
+    {{- include "sample-app.labels" . | nindent 4 }}
+  annotations:
+    {{- include "sample-app.annotations" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "sample-app.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    {{- if .Values.networkPolicy.ingress }}
+    {{- range .Values.networkPolicy.ingress }}
+    - from:
+        {{- if .from }}
+        {{- range .from }}
+        {{- if .namespaceSelector }}
+        - namespaceSelector:
+            {{- toYaml .namespaceSelector | nindent 12 }}
+        {{- end }}
+        {{- if .podSelector }}
+        - podSelector:
+            {{- toYaml .podSelector | nindent 12 }}
+        {{- end }}
+        {{- if .ipBlock }}
+        - ipBlock:
+            {{- toYaml .ipBlock | nindent 12 }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+      {{- if .ports }}
+      ports:
+        {{- range .ports }}
+        - protocol: {{ .protocol }}
+          port: {{ .port }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- else }}
+    # Default ingress: allow traffic from Istio system and monitoring
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: istio-system
+      ports:
+        - protocol: TCP
+          port: {{ .Values.service.targetPort }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: {{ .Values.service.targetPort }}
+    {{- end }}
+  egress:
+    {{- if .Values.networkPolicy.egress }}
+    {{- range .Values.networkPolicy.egress }}
+    - to:
+        {{- if .to }}
+        {{- range .to }}
+        {{- if .namespaceSelector }}
+        - namespaceSelector:
+            {{- toYaml .namespaceSelector | nindent 12 }}
+        {{- end }}
+        {{- if .podSelector }}
+        - podSelector:
+            {{- toYaml .podSelector | nindent 12 }}
+        {{- end }}
+        {{- if .ipBlock }}
+        - ipBlock:
+            {{- toYaml .ipBlock | nindent 12 }}
+        {{- end }}
+        {{- end }}
+        {{- else }}
+        - {}  # Allow to all destinations
+        {{- end }}
+      {{- if .ports }}
+      ports:
+        {{- range .ports }}
+        - protocol: {{ .protocol }}
+          port: {{ .port }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- else }}
+    # Default egress: DNS and HTTPS
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+    {{- end }}
+{{- end }}

@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: non-compliant-app
+  labels:
+    app: non-compliant-app  # Missing proper Big Bang labels
+  # VIOLATION: Missing cert-manager annotations
+spec:
+  # VIOLATION: Missing ingressClassName
+  # VIOLATION: No TLS configuration - violates Big Bang encryption requirements
+  rules:
+    - host: non-compliant-app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: non-compliant-app
+                port:
+                  number: 80

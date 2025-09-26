@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sample-app.fullname" . }}
+  labels:
+    {{- include "sample-app.labels" . | nindent 4 }}
+  annotations:
+    {{- include "sample-app.annotations" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "sample-app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- include "sample-app.annotations" . | nindent 8 }}
+        # Istio sidecar injection
+        {{- if .Values.serviceAccount.annotations }}
+        {{- range $key, $value := .Values.serviceAccount.annotations }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
+      labels:
+        {{- include "sample-app.selectorLabels" . | nindent 8 }}
+        # Additional labels for network policies and monitoring
+        version: {{ .Chart.AppVersion | quote }}
+    spec:
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "sample-app.serviceAccountName" . }}
+      {{- end }}
+      securityContext:
+        {{- include "sample-app.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "sample-app.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: {{ .Values.service.protocol }}
+          securityContext:
+            {{- include "sample-app.containerSecurityContext" . | nindent 12 }}
+          # Resource limits and requests - REQUIRED for Big Bang
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          # Health probes - REQUIRED for Big Bang operational standards
+          livenessProbe:
+            {{- toYaml .Values.probes.liveness | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.probes.readiness | nindent 12 }}
+          # Environment variables
+          {{- if .Values.env }}
+          env:
+            {{- include "sample-app.env" . | nindent 12 }}
+          {{- end }}
+          # Volume mounts for read-only root filesystem
+          {{- if .Values.volumeMounts }}
+          volumeMounts:
+            {{- include "sample-app.volumeMounts" . | nindent 12 }}
+          {{- end }}
+      # Volumes for read-only root filesystem
+      {{- if .Values.volumes }}
+      volumes:
+        {{- include "sample-app.volumes" . | nindent 8 }}
+      {{- end }}
+      # Node selection and affinity
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

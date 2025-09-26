@@ -1,0 +1,186 @@
+# Big Bang compliant values for sample application
+# Edit these values to match your application requirements
+
+# Container image configuration - MUST use Iron Bank registry
+image:
+  repository: registry.internal/ironbank/opensource/nginx/nginx
+  # Digest pinning recommended for immutable deployments
+  digest: sha256:4c0fdaa8b6341bfdeca5f18f7837462c80cff90527ee35ef185571e1c327beac
+  tag: "1.25.3"  # Semantic version as fallback to digest
+  pullPolicy: IfNotPresent
+
+# Application metadata
+nameOverride: ""
+fullnameOverride: ""
+
+# Replica configuration
+replicaCount: 2
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  protocol: TCP
+
+# Ingress configuration - TLS required for Big Bang
+ingress:
+  enabled: true
+  className: "istio"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Istio service mesh annotations
+    kubernetes.io/ingress.class: "istio"
+  hosts:
+    - host: sample-app.bigbang.dev
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: sample-app-tls
+      hosts:
+        - sample-app.bigbang.dev
+
+# Resource configuration - REQUIRED for Big Bang
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# Health probes - REQUIRED for Big Bang operational standards
+probes:
+  liveness:
+    httpGet:
+      path: /health
+      port: http
+      scheme: HTTP
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+
+  readiness:
+    httpGet:
+      path: /ready
+      port: http
+      scheme: HTTP
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+
+# Security context - REQUIRED for DoD compliance
+securityContext:
+  # Pod security context
+  pod:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Container security context
+  container:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    capabilities:
+      drop:
+        - ALL
+      add: []
+
+# Service account configuration - REQUIRED for Istio integration
+serviceAccount:
+  create: true
+  name: "sample-app"
+  annotations:
+    # Istio sidecar injection
+    sidecar.istio.io/inject: "true"
+
+# Network Policy - REQUIRED for Big Bang zero trust
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: istio-system
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow external API calls if needed
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+
+# Pod Disruption Budget for high availability
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Node selection and affinity
+nodeSelector: {}
+tolerations: []
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - sample-app
+          topologyKey: kubernetes.io/hostname
+
+# Volume mounts for read-only root filesystem
+volumeMounts:
+  - name: tmp
+    mountPath: /tmp
+  - name: var-run
+    mountPath: /var/run
+  - name: var-cache
+    mountPath: /var/cache/nginx
+
+volumes:
+  - name: tmp
+    emptyDir: {}
+  - name: var-run
+    emptyDir: {}
+  - name: var-cache
+    emptyDir: {}
+
+# Environment variables
+env: []
+
+# Configuration for existing application manifests (Brownfield adapter)
+# These should match your existing Kubernetes manifests
+existingManifests:
+  # If you have existing ConfigMaps, reference them here
+  configMaps: []
+  # If you have existing Secrets, reference them here
+  secrets: []
+  # Any additional labels or annotations to preserve
+  labels: {}
+  annotations: {}

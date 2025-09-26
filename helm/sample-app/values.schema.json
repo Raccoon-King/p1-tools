@@ -1,0 +1,346 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "Big Bang Compliant Application Values Schema",
+  "description": "Validates Helm values for Big Bang compliance requirements",
+  "required": ["image", "resources", "probes", "securityContext", "serviceAccount"],
+  "properties": {
+    "image": {
+      "type": "object",
+      "description": "Container image configuration",
+      "required": ["repository"],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^registry\\.internal/ironbank/.+",
+          "description": "Container image repository - MUST use Iron Bank mirror"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "Image digest for immutable deployment (recommended)"
+        },
+        "tag": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+.*$",
+          "description": "Semantic version tag (fallback to digest)"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "default": "IfNotPresent",
+          "description": "Image pull policy"
+        }
+      },
+      "oneOf": [
+        { "required": ["digest"] },
+        { "required": ["tag"] }
+      ]
+    },
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50,
+      "description": "Number of pod replicas"
+    },
+    "resources": {
+      "type": "object",
+      "description": "Resource requests and limits - REQUIRED for Big Bang",
+      "required": ["requests", "limits"],
+      "properties": {
+        "requests": {
+          "type": "object",
+          "required": ["cpu", "memory"],
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "pattern": "^[0-9]+(m|\\.[0-9]+)?$",
+              "description": "CPU request (e.g., '250m' or '0.25')"
+            },
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+(Mi|Gi)$",
+              "description": "Memory request (e.g., '256Mi' or '1Gi')"
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "required": ["cpu", "memory"],
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "pattern": "^[0-9]+(m|\\.[0-9]+)?$",
+              "description": "CPU limit (e.g., '500m' or '0.5')"
+            },
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+(Mi|Gi)$",
+              "description": "Memory limit (e.g., '512Mi' or '2Gi')"
+            }
+          }
+        }
+      }
+    },
+    "probes": {
+      "type": "object",
+      "description": "Health probes - REQUIRED for Big Bang operational standards",
+      "required": ["liveness", "readiness"],
+      "properties": {
+        "liveness": {
+          "type": "object",
+          "required": ["httpGet"],
+          "properties": {
+            "httpGet": {
+              "type": "object",
+              "required": ["path", "port"],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "pattern": "^/.*",
+                  "description": "HTTP path for liveness probe"
+                },
+                "port": {
+                  "type": ["string", "integer"],
+                  "description": "Port for liveness probe"
+                },
+                "scheme": {
+                  "type": "string",
+                  "enum": ["HTTP", "HTTPS"],
+                  "default": "HTTP"
+                }
+              }
+            },
+            "initialDelaySeconds": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 300
+            },
+            "periodSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300
+            }
+          }
+        },
+        "readiness": {
+          "type": "object",
+          "required": ["httpGet"],
+          "properties": {
+            "httpGet": {
+              "type": "object",
+              "required": ["path", "port"],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "pattern": "^/.*",
+                  "description": "HTTP path for readiness probe"
+                },
+                "port": {
+                  "type": ["string", "integer"],
+                  "description": "Port for readiness probe"
+                },
+                "scheme": {
+                  "type": "string",
+                  "enum": ["HTTP", "HTTPS"],
+                  "default": "HTTP"
+                }
+              }
+            },
+            "initialDelaySeconds": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 300
+            },
+            "periodSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300
+            }
+          }
+        }
+      }
+    },
+    "securityContext": {
+      "type": "object",
+      "description": "Security context - REQUIRED for DoD compliance",
+      "required": ["pod", "container"],
+      "properties": {
+        "pod": {
+          "type": "object",
+          "required": ["runAsNonRoot", "runAsUser", "seccompProfile"],
+          "properties": {
+            "runAsNonRoot": {
+              "type": "boolean",
+              "const": true,
+              "description": "Must run as non-root user"
+            },
+            "runAsUser": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Non-root user ID"
+            },
+            "runAsGroup": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Non-root group ID"
+            },
+            "seccompProfile": {
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["RuntimeDefault", "Localhost"],
+                  "description": "Seccomp profile type"
+                }
+              }
+            }
+          }
+        },
+        "container": {
+          "type": "object",
+          "required": ["allowPrivilegeEscalation", "readOnlyRootFilesystem", "runAsNonRoot", "capabilities"],
+          "properties": {
+            "allowPrivilegeEscalation": {
+              "type": "boolean",
+              "const": false,
+              "description": "Must not allow privilege escalation"
+            },
+            "readOnlyRootFilesystem": {
+              "type": "boolean",
+              "const": true,
+              "description": "Must use read-only root filesystem"
+            },
+            "runAsNonRoot": {
+              "type": "boolean",
+              "const": true,
+              "description": "Must run as non-root user"
+            },
+            "capabilities": {
+              "type": "object",
+              "required": ["drop"],
+              "properties": {
+                "drop": {
+                  "type": "array",
+                  "contains": {
+                    "const": "ALL"
+                  },
+                  "description": "Must drop all capabilities"
+                },
+                "add": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Only add required capabilities"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "serviceAccount": {
+      "type": "object",
+      "description": "Service account configuration - REQUIRED for Istio",
+      "required": ["create", "name"],
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Whether to create service account"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Service account name"
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Service account annotations"
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer"],
+          "default": "ClusterIP",
+          "description": "Service type"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Service port"
+        },
+        "targetPort": {
+          "type": ["integer", "string"],
+          "description": "Target port on pod"
+        },
+        "protocol": {
+          "type": "string",
+          "enum": ["TCP", "UDP"],
+          "default": "TCP"
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable ingress"
+        },
+        "className": {
+          "type": "string",
+          "description": "Ingress class name"
+        },
+        "tls": {
+          "type": "array",
+          "description": "TLS configuration - REQUIRED if ingress enabled",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["secretName", "hosts"],
+            "properties": {
+              "secretName": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hosts": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "format": "hostname"
+                }
+              }
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "enabled": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": ["tls"]
+      }
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable network policy - RECOMMENDED for zero trust"
+        }
+      }
+    }
+  }
+}

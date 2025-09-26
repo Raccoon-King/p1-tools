@@ -1,0 +1,197 @@
+#!/bin/bash
+set -euo pipefail
+
+# GitLab Pre-receive Hook - Server-side Big Bang Compliance Enforcement
+#
+# Installation Instructions:
+# 1. Copy this script to GitLab server: /opt/gitlab/embedded/service/gitlab-shell/hooks/pre-receive
+# 2. Make executable: chmod +x /opt/gitlab/embedded/service/gitlab-shell/hooks/pre-receive
+# 3. Ensure P1 Dev Guard public key is available at: ${GITLAB_PRE_RECEIVE_KEY_PATH}
+# 4. Configure PROTECTED_BRANCHES in GitLab settings or modify below
+#
+# References:
+# - GitLab Server Hooks: https://docs.gitlab.com/ee/administration/server_hooks.html
+# - Git Pre-receive Hooks: https://git-scm.com/docs/githooks#_pre_receive
+
+# Configuration
+GITLAB_PRE_RECEIVE_KEY_PATH="${GITLAB_PRE_RECEIVE_KEY_PATH:-/opt/p1-dev-guard/repo.pub}"
+PROTECTED_BRANCHES=("main" "master" "production" "release/*")
+ARTIFACTS_DIR="/tmp/p1-verification"
+TOOL_IMAGE="${TOOL_IMAGE:-registry.internal/p1/p1-dev-guard:2025.09.01}"
+
+# Logging function
+log() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" >&2
+}
+
+# Check if branch is protected
+is_protected_branch() {
+    local branch="$1"
+    for pattern in "${PROTECTED_BRANCHES[@]}"; do
+        if [[ "${branch}" == ${pattern} ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Verify cosign attestation
+verify_attestation() {
+    local commit_sha="$1"
+    local attestation_file="${ARTIFACTS_DIR}/attestations/${commit_sha}.intoto.jsonl"
+
+    log "Verifying cryptographic attestation for commit ${commit_sha}"
+
+    # Check if attestation file exists
+    if [[ ! -f "${attestation_file}" ]]; then
+        echo "❌ No cryptographic attestation found for commit ${commit_sha}"
+        echo "   Expected: ${attestation_file}"
+        echo "   Run 'make verify' locally to generate attestation"
+        return 1
+    fi
+
+    # Check if cosign public key exists
+    if [[ ! -f "${GITLAB_PRE_RECEIVE_KEY_PATH}" ]]; then
+        log "Warning: cosign public key not found at ${GITLAB_PRE_RECEIVE_KEY_PATH}"
+        echo "⚠️  Attestation verification skipped - no public key configured"
+        echo "   Configure GITLAB_PRE_RECEIVE_KEY_PATH in GitLab environment"
+        return 0
+    fi
+
+    # Verify attestation signature
+    if command -v cosign >/dev/null 2>&1; then
+        if cosign verify-attestation \
+            --key "${GITLAB_PRE_RECEIVE_KEY_PATH}" \
+            --type custom \
+            "${attestation_file}" > /dev/null 2>&1; then
+            log "✅ Cryptographic attestation verified for commit ${commit_sha}"
+            return 0
+        else
+            echo "❌ Invalid or tampered cryptographic attestation for commit ${commit_sha}"
+            echo "   Attestation signature verification failed"
+            echo "   Ensure the commit was verified with 'make verify' using the correct signing key"
+            return 1
+        fi
+    else
+        log "Warning: cosign not available for attestation verification"
+        echo "⚠️  Attestation verification skipped - cosign not installed"
+        return 0
+    fi
+}
+
+# Run compliance verification for commit
+verify_commit_compliance() {
+    local commit_sha="$1"
+
+    log "Running compliance verification for commit ${commit_sha}"
+
+    # Create temporary directory for this verification
+    local temp_dir="/tmp/p1-verify-${commit_sha}"
+    mkdir -p "${temp_dir}"
+
+    # Export commit to temporary directory
+    git archive "${commit_sha}" | tar -xC "${temp_dir}"
+
+    # Run containerized verification
+    if docker run --rm \
+        -v "${temp_dir}:/workspace" \
+        -w /workspace \
+        "${TOOL_IMAGE}" \
+        /workspace/make/bb-verify.sh > "${temp_dir}/verify.log" 2>&1; then
+        log "✅ Compliance verification passed for commit ${commit_sha}"
+
+        # Copy artifacts to central location for attestation verification
+        if [[ -d "${temp_dir}/artifacts" ]]; then
+            mkdir -p "${ARTIFACTS_DIR}"
+            cp -r "${temp_dir}/artifacts"/* "${ARTIFACTS_DIR}/" 2>/dev/null || true
+        fi
+
+        # Cleanup
+        rm -rf "${temp_dir}"
+        return 0
+    else
+        echo "❌ Big Bang compliance verification failed for commit ${commit_sha}"
+        echo ""
+        echo "Verification Log:"
+        echo "=================="
+        cat "${temp_dir}/verify.log" || echo "No verification log available"
+        echo "=================="
+        echo ""
+        echo "🔧 Fix compliance issues and push again"
+        echo "💡 Run 'make verify' locally for detailed feedback"
+
+        # Cleanup
+        rm -rf "${temp_dir}"
+        return 1
+    fi
+}
+
+# Main hook logic
+log "GitLab pre-receive hook: P1 Dev Guard compliance enforcement"
+
+while read oldrev newrev refname; do
+    # Extract branch name from ref
+    branch="${refname#refs/heads/}"
+
+    log "Processing push to branch: ${branch}"
+    log "Commits: ${oldrev}..${newrev}"
+
+    # Skip non-protected branches
+    if ! is_protected_branch "${branch}"; then
+        log "Branch ${branch} is not protected - skipping compliance verification"
+        continue
+    fi
+
+    echo "🛡️  Protected branch '${branch}' - enforcing Big Bang compliance"
+
+    # Handle branch deletion
+    if [[ "${newrev}" == "0000000000000000000000000000000000000000" ]]; then
+        log "Branch deletion detected - skipping verification"
+        continue
+    fi
+
+    # Get list of commits to verify
+    if [[ "${oldrev}" == "0000000000000000000000000000000000000000" ]]; then
+        # New branch - verify all commits
+        commits=$(git rev-list --reverse "${newrev}")
+        log "New branch detected - verifying all commits"
+    else
+        # Existing branch - verify only new commits
+        commits=$(git rev-list --reverse "${oldrev}..${newrev}")
+        log "Existing branch - verifying new commits only"
+    fi
+
+    # Verify each commit
+    for commit in ${commits}; do
+        echo "🔍 Verifying commit: $(git show --format='%h %s' --no-patch "${commit}")"
+
+        # Method 1: Check for existing attestation (preferred)
+        if verify_attestation "${commit}"; then
+            echo "✅ Commit ${commit} has valid attestation"
+            continue
+        fi
+
+        # Method 2: Run live compliance verification (fallback)
+        echo "⚠️  No valid attestation found - running live verification"
+        if verify_commit_compliance "${commit}"; then
+            echo "✅ Commit ${commit} passed live verification"
+        else
+            echo "❌ Commit ${commit} failed compliance verification"
+            echo ""
+            echo "Push REJECTED: Big Bang compliance requirements not met"
+            echo ""
+            echo "Required actions:"
+            echo "1. Run 'make verify' locally to ensure compliance"
+            echo "2. Fix any compliance violations"
+            echo "3. Ensure cryptographic attestation is generated"
+            echo "4. Push again"
+            exit 1
+        fi
+    done
+
+    echo "✅ All commits on branch '${branch}' passed Big Bang compliance verification"
+done
+
+log "Pre-receive hook completed successfully"
+echo "🎉 Push accepted - all commits meet Big Bang compliance requirements"
+exit 0

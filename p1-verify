@@ -1,0 +1,102 @@
+#!/bin/bash
+
+# P1 Dev Guard CLI Wrapper
+# Runs the containerized verification tool
+
+set -euo pipefail
+
+TOOL_IMAGE="${P1_TOOL_IMAGE:-registry.internal/p1/p1-dev-guard:2025.09.01}"
+WORKSPACE_DIR="${PWD}"
+KEYS_DIR="${HOME}/.p1devguard/keys"
+OUTPUT_DIR="${PWD}/.p1-artifacts"
+
+# Colors
+red() { echo -e "\033[31m$*\033[0m"; }
+green() { echo -e "\033[32m$*\033[0m"; }
+yellow() { echo -e "\033[33m$*\033[0m"; }
+blue() { echo -e "\033[34m$*\033[0m"; }
+
+# Usage
+usage() {
+    cat << EOF
+P1 Dev Guard CLI Wrapper
+
+This script runs the containerized P1 Dev Guard verification tool.
+
+USAGE:
+    p1-verify [OPTIONS]
+
+EXAMPLES:
+    # Verify current directory
+    p1-verify
+
+    # Verify with specific Helm chart
+    p1-verify --chart ./helm/myapp
+
+    # CI mode with JSON output
+    p1-verify --ci --format json
+
+    # Show container help
+    p1-verify --help
+
+ENVIRONMENT VARIABLES:
+    P1_TOOL_IMAGE    Container image to use (default: registry.internal/p1/p1-dev-guard:2025.09.01)
+
+SETUP:
+    1. Ensure Docker is running
+    2. Create keys directory: mkdir -p ~/.p1devguard/keys
+    3. Place cosign signing key at: ~/.p1devguard/keys/cosign.key (optional)
+EOF
+}
+
+# Check dependencies
+check_deps() {
+    if ! command -v docker >/dev/null 2>&1; then
+        red "❌ Docker is required but not found"
+        echo "Please install Docker to use P1 Dev Guard"
+        exit 1
+    fi
+
+    if ! docker info >/dev/null 2>&1; then
+        red "❌ Docker daemon is not running"
+        echo "Please start Docker daemon"
+        exit 1
+    fi
+}
+
+# Create directories if they don't exist
+setup_dirs() {
+    mkdir -p "${KEYS_DIR}"
+    mkdir -p "${OUTPUT_DIR}"
+}
+
+# Handle local help
+if [[ "${1:-}" == "--local-help" ]]; then
+    usage
+    exit 0
+fi
+
+# Check for Docker
+check_deps
+
+# Setup directories
+setup_dirs
+
+# Pull latest image if needed (in background)
+if [[ "${1:-}" != "--help" && "${1:-}" != "--version" ]]; then
+    blue "🔄 Checking for latest P1 Dev Guard image..."
+    if ! docker pull "${TOOL_IMAGE}" >/dev/null 2>&1; then
+        yellow "⚠️  Could not pull latest image, using local version"
+    fi
+fi
+
+# Run the container
+blue "🚀 Running P1 Dev Guard verification..."
+
+exec docker run --rm \
+    -v "${WORKSPACE_DIR}:/workspace" \
+    -v "${KEYS_DIR}:/keys:ro" \
+    -w /workspace \
+    --user "$(id -u):$(id -g)" \
+    "${TOOL_IMAGE}" \
+    "$@"

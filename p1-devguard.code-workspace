@@ -1,0 +1,107 @@
+{
+  "folders": [
+    {
+      "name": "P1 Dev Guard",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "p1devguard.enabled": true,
+    "p1devguard.autoAnalysis": true,
+    "p1devguard.aiModel": "claude-3-haiku",
+    "p1devguard.awsRegion": "us-east-1",
+    "p1devguard.analysisDepth": "standard",
+    "p1devguard.showCostEstimates": true,
+    "p1devguard.containerImage": "registry.internal/p1/p1-dev-guard:2025.09.01",
+
+    "files.associations": {
+      "*.rego": "rego",
+      "Chart.yaml": "yaml",
+      "values*.yaml": "helm",
+      "values.schema.json": "json",
+      "*.tpl": "helm",
+      "Dockerfile*": "dockerfile",
+      ".helmignore": "ignore"
+    },
+
+    "yaml.schemas": {
+      "https://raw.githubusercontent.com/helm/helm/main/pkg/chart/chart.go": "Chart.yaml",
+      "./helm/*/values.schema.json": "./helm/*/values*.yaml"
+    },
+
+    "python.defaultInterpreterPath": "/usr/bin/python3",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "black",
+
+    "docker.defaultRegistryPath": "registry.internal",
+    "kubernetes.outputFormat": "yaml",
+    "vs-kubernetes.namespace": "sample-app",
+
+    "terminal.integrated.env.linux": {
+      "IRONBANK_MIRROR": "registry.internal/ironbank",
+      "TRIVY_SEVERITY": "HIGH,CRITICAL",
+      "AWS_REGION": "us-east-1"
+    },
+
+    "problems.decorations.enabled": true,
+    "problems.showCurrentInStatus": true
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "P1: Full Analysis with AI",
+        "dependsOrder": "sequence",
+        "dependsOn": [
+          "P1: Test AWS/Bedrock Connection",
+          "P1: AI Analysis (Container)"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        }
+      },
+      {
+        "label": "P1: Development Workflow",
+        "dependsOrder": "sequence",
+        "dependsOn": [
+          "P1: Lint",
+          "P1: Quick AI Scan",
+          "P1: Chart Template"
+        ],
+        "group": "build"
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug: AI Analysis Pipeline",
+        "type": "python",
+        "request": "launch",
+        "program": "${workspaceFolder}/build/toolchain/bedrock_analyzer.py",
+        "args": ["--debug", "--model", "claude-3-haiku"],
+        "env": {
+          "AWS_PROFILE": "${env:AWS_PROFILE}",
+          "DEBUG": "1",
+          "PYTHONPATH": "${workspaceFolder}/build/toolchain"
+        },
+        "console": "integratedTerminal"
+      }
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-azuretools.vscode-docker",
+      "ms-kubernetes-tools.vscode-kubernetes-tools",
+      "redhat.vscode-yaml",
+      "tim-koike.helm-intellisense",
+      "tsandall.opa",
+      "amazonwebservices.aws-toolkit-vscode"
+    ]
+  }
+}

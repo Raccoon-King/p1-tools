@@ -1,0 +1,28 @@
+apiVersion: v2
+name: sample-app
+description: A Brownfield Helm chart adapter for Big Bang compliance
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+# Big Bang compliance metadata
+annotations:
+  bigbang.dev/applicationVersions: |
+    - Sample App: 1.0.0
+  catalog.cattle.io/certified: partner
+  catalog.cattle.io/namespace: sample-app
+  catalog.cattle.io/release-name: sample-app
+
+keywords:
+  - big-bang
+  - p1
+  - platform-one
+  - compliance
+
+home: https://repo1.dso.mil/big-bang
+sources:
+  - https://github.com/your-org/sample-app
+
+maintainers:
+  - name: Platform One Team
+    email: team@platform1.dso.mil

@@ -1,0 +1,23 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: sample-app-charts
+  namespace: sample-app
+  labels:
+    app.kubernetes.io/name: sample-app
+    app.kubernetes.io/part-of: bigbang
+  annotations:
+    bigbang.dev/component: "sample-app"
+spec:
+  interval: 10m
+  # Internal OCI registry for air-gapped environments
+  type: oci
+  url: oci://registry.internal/charts
+  # Reference to secret containing registry credentials if needed
+  secretRef:
+    name: registry-credentials
+  # Verify signatures if available
+  verify:
+    provider: cosign
+    secretRef:
+      name: cosign-public-keys

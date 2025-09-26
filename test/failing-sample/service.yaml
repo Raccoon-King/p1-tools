@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: non-compliant-app
+  labels:
+    app: non-compliant-app  # Missing proper Big Bang labels
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      # VIOLATION: Missing protocol specification
+      # VIOLATION: Missing port name (required for Istio)
+  selector:
+    app: non-compliant-app

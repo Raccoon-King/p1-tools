@@ -1,0 +1,107 @@
+{
+  "name": "P1 Dev Guard Development Environment",
+  "dockerFile": "Dockerfile",
+  "context": "..",
+
+  // Features
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "configureZshAsDefaultShell": true,
+      "username": "vscode"
+    },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "version": "latest",
+      "helm": "3.14.0",
+      "kubectl": "1.29.0"
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest"
+    }
+  },
+
+  // Container configuration
+  "runArgs": [
+    "--privileged",
+    "--network=host"
+  ],
+
+  // Mounts for development
+  "mounts": [
+    "source=${localEnv:HOME}/.p1devguard,target=/home/vscode/.p1devguard,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.kube,target=/home/vscode/.kube,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.aws,target=/home/vscode/.aws,type=bind,consistency=cached"
+  ],
+
+  // Environment variables
+  "containerEnv": {
+    "KUBECONFIG": "/home/vscode/.kube/config",
+    "AWS_PROFILE": "default"
+  },
+
+  // VS Code customizations
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-json",
+        "ms-azuretools.vscode-docker",
+        "golang.go",
+        "hashicorp.terraform",
+        "ms-vscode.makefile-tools",
+        "tim-koehler.helm-intellisense",
+        "redhat.vscode-xml",
+        "ms-vscode.powershell",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "Continue.continue"
+      ],
+      "settings": {
+        "yaml.schemas": {
+          "kubernetes": ["*.yaml", "*.yml"],
+          "helm": ["helm/**/templates/*.yaml", "helm/**/values*.yaml"]
+        },
+        "kubernetes.defaultNamespace": "sample-app",
+        "files.associations": {
+          "*.rego": "plaintext"
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  },
+
+  // Post-create command
+  "postCreateCommand": "bash -c 'git config --global core.hooksPath .git-hooks && make bootstrap'",
+
+  // Lifecycle scripts
+  "initializeCommand": "echo 'Initializing P1 Dev Guard development environment...'",
+  "onCreateCommand": [
+    "sudo chown -R vscode:vscode /workspace",
+    "sudo chmod +x /workspace/.git-hooks/*",
+    "sudo chmod +x /workspace/make/bb-verify.sh"
+  ],
+
+  // User configuration
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspace",
+
+  // Port forwarding for development
+  "forwardPorts": [8080, 3000, 9090],
+  "portsAttributes": {
+    "8080": {
+      "label": "Application",
+      "onAutoForward": "notify"
+    },
+    "3000": {
+      "label": "Frontend",
+      "onAutoForward": "notify"
+    },
+    "9090": {
+      "label": "Prometheus",
+      "onAutoForward": "ignore"
+    }
+  }
+}

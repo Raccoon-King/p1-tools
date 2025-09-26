@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: privileged-app
+  labels:
+    app: privileged-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: privileged-app
+  template:
+    metadata:
+      labels:
+        app: privileged-app
+    spec:
+      # VIOLATION: Using host network bypasses network policies
+      hostNetwork: true
+      # VIOLATION: Using host PID breaks container isolation
+      hostPID: true
+      securityContext:
+        # VIOLATION: Running as root user
+        runAsUser: 0
+        runAsNonRoot: false
+      containers:
+        - name: app
+          image: registry.internal/ironbank/redhat/ubi/ubi9:9.4  # Iron Bank image but...
+          securityContext:
+            # VIOLATION: Privileged container has full host access
+            privileged: true
+            # VIOLATION: Allows privilege escalation
+            allowPrivilegeEscalation: true
+            # VIOLATION: Writable root filesystem
+            readOnlyRootFilesystem: false
+            # VIOLATION: Running as root
+            runAsUser: 0
+            capabilities:
+              # VIOLATION: Adding dangerous capabilities
+              add:
+                - SYS_ADMIN
+                - SYS_PTRACE
+                - SETUID
+          # VIOLATION: Using host port
+          ports:
+            - containerPort: 8080
+              hostPort: 8080
+          # Missing resource limits - allows resource exhaustion
+          # Missing health probes
+          volumeMounts:
+            # VIOLATION: Mounting host paths exposes host data
+            - name: host-root
+              mountPath: /host
+      volumes:
+        # VIOLATION: Host path volume breaks container isolation
+        - name: host-root
+          hostPath:
+            path: /
