@@ -1,11 +1,11 @@
 # P1 Dev Guard Toolchain Container
 # Contains all tools needed for Big Bang compliance verification
 
-FROM registry.internal/ironbank/redhat/ubi/ubi9:9.4 as base
+FROM redhat/ubi9:9.4 as base
 
 # Install base dependencies
-RUN microdnf update -y && \
-    microdnf install -y \
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
         curl \
         git \
         jq \
@@ -13,11 +13,11 @@ RUN microdnf update -y && \
         tar \
         bash \
         ca-certificates && \
-    microdnf clean all
+    dnf clean all
 
 # Tool versions (pin for reproducibility)
 ENV HELM_VERSION=3.14.0
-ENV CONFTEST_VERSION=0.49.1
+ENV CONFTEST_VERSION=0.62.0
 ENV HADOLINT_VERSION=2.12.0
 ENV TRIVY_VERSION=0.50.1
 ENV SYFT_VERSION=0.105.0
@@ -32,7 +32,7 @@ RUN curl -fsSL https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz | \
     chmod +x /usr/local/bin/helm
 
 # Install Conftest (OPA policy testing)
-RUN curl -fsSL https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_linux_amd64.tar.gz | \
+RUN curl -fsSL https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz | \
     tar -xzC /tmp && \
     mv /tmp/conftest /usr/local/bin/conftest && \
     chmod +x /usr/local/bin/conftest
@@ -66,7 +66,7 @@ RUN curl -fsSL https://github.com/yannh/kubeconform/releases/download/v${KUBECON
     chmod +x /usr/local/bin/kubeconform
 
 # Install Python and dependencies
-RUN microdnf install -y python3 python3-pip && \
+RUN dnf install -y python3 python3-pip && \
     pip3 install \
         yamllint==${YAMLLINT_VERSION} \
         boto3==1.34.44 \

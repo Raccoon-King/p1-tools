@@ -7,7 +7,7 @@
 # - Big Bang security baseline
 
 # Multi-stage build for minimal attack surface
-FROM registry.internal/ironbank/redhat/ubi/ubi9:9.4 as builder
+FROM redhat/ubi9:9.4 as builder
 
 # Install build dependencies in builder stage only
 USER root
@@ -30,7 +30,7 @@ WORKDIR /build
 # RUN make build
 
 # Runtime stage - minimal and secure
-FROM registry.internal/ironbank/redhat/ubi/ubi9-minimal:9.4
+FROM redhat/ubi9-minimal:9.4
 
 # Install only runtime dependencies
 USER root
@@ -43,8 +43,8 @@ RUN microdnf update -y && \
 
 # Create non-root user and group
 # Using high UID/GID values to avoid conflicts in multi-tenant environments
-RUN groupadd -r -g 65534 appgroup && \
-    useradd -r -u 65534 -g appgroup -d /app -s /sbin/nologin \
+RUN groupadd -r appgroup && \
+    useradd -r -g appgroup -d /app -s /sbin/nologin \
     -c "Application User" appuser
 
 # Create application directories with proper ownership
