@@ -3,13 +3,14 @@
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
   "editor.detectIndentation": true,
-  "editor.rulers": [120],
+  "editor.rulers": [
+    120
+  ],
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll": true,
-    "source.organizeImports": true
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit"
   },
-
   // File associations for Big Bang and Kubernetes
   "files.associations": {
     "*.yaml": "yaml",
@@ -22,7 +23,6 @@
     "Dockerfile*": "dockerfile",
     "*.tpl": "helm"
   },
-
   // YAML configuration
   "yaml.validate": true,
   "yaml.format.enable": true,
@@ -38,7 +38,6 @@
     "https://raw.githubusercontent.com/helm/helm/main/pkg/chart/chart.go": "Chart.yaml",
     "https://json.schemastore.org/helmfile.json": "helmfile.yaml"
   },
-
   // Kubernetes extension settings
   "vs-kubernetes": {
     "vs-kubernetes.namespace": "sample-app",
@@ -51,23 +50,23 @@
     "vs-kubernetes.autoCleanupOnDebugTerminate": true,
     "vs-kubernetes.logsDisplayMode": "container"
   },
-
   // Docker settings
   "docker.defaultRegistryPath": "registry.internal",
   "docker.images.label": "CreatedTime",
   "docker.images.sortBy": "CreatedTime",
   "docker.images.groupBy": "Repository",
-
   // Git settings
   "git.enableSmartCommit": true,
   "git.autofetch": true,
   "git.confirmSync": false,
-  "git.branchProtection": ["main", "master", "production"],
-
+  "git.branchProtection": [
+    "main",
+    "master",
+    "production"
+  ],
   // Terminal settings
   "terminal.integrated.defaultProfile.linux": "bash",
   "terminal.integrated.shell.linux": "/bin/bash",
-
   // Search and file exclusions
   "search.exclude": {
     "**/node_modules": true,
@@ -78,43 +77,35 @@
     "**/.git": true,
     "**/artifacts": true
   },
-
   "files.exclude": {
     "**/.git": true,
     "**/node_modules": true,
     "**/artifacts": true
   },
-
   // Language-specific settings
   "[yaml]": {
     "editor.defaultFormatter": "redhat.vscode-yaml",
     "editor.autoIndent": "advanced"
   },
-
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-
   "[dockerfile]": {
     "editor.defaultFormatter": "ms-azuretools.vscode-docker"
   },
-
   "[go]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": true
+      "source.organizeImports": "explicit"
     }
   },
-
   // Prettier configuration
   "prettier.configPath": ".prettierrc",
   "prettier.tabWidth": 2,
   "prettier.useTabs": false,
-
   // Problems panel configuration
   "problems.decorations.enabled": true,
   "problems.showCurrentInStatus": true,
-
   // IntelliSense and validation
   "typescript.suggest.autoImports": true,
   "json.validate.enable": true,
@@ -127,7 +118,6 @@
     "!Split sequence",
     "!Sub sequence"
   ],
-
   // Extension settings
   "helm-intellisense.customValueFileNames": [
     "values.yaml",
@@ -135,11 +125,9 @@
     "values-*.yaml",
     "values-*.yml"
   ],
-
   // Continue/AI assistant settings
   "continue.enableTabAutocomplete": true,
   "continue.telemetryEnabled": false,
-
   // P1 Dev Guard AI Settings
   "p1devguard.enabled": true,
   "p1devguard.autoAnalysis": true,
